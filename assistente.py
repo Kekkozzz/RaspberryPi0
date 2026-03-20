@@ -97,7 +97,7 @@ WHISPER_PROMPT = (
     "Raspy, Modà, Måneskin, Spotify, YouTube, playlist, "
     "Ed Sheeran, Coldplay, Adele, Drake, Taylor Swift, "
     "Ultimo, Blanco, Annalisa, Elodie, Geolier, Sfera Ebbasta, Shiva "
-    "timer, meteo, volume, stop, pausa, riprendi, basta, ferma"
+    "timer, meteo, volume, stop, pausa, riprendi, basta, ferma, abbassa"
 )
 
 def trascrivi(filepath='/tmp/input.wav'):
@@ -205,6 +205,16 @@ def musica_volume(direzione):
     delta = 10 if direzione == "su" else -10
     _mpv_command(["add", "volume", delta])
 
+def volume_sistema(direzione):
+    if direzione == "su":
+        subprocess.run(['wpctl', 'set-volume', '@DEFAULT_AUDIO_SINK@', '10%+'], capture_output=True)
+    elif direzione == "giù":
+        subprocess.run(['wpctl', 'set-volume', '@DEFAULT_AUDIO_SINK@', '10%-'], capture_output=True)
+    elif direzione == "massimo":
+        subprocess.run(['wpctl', 'set-volume', '@DEFAULT_AUDIO_SINK@', '1.0'], capture_output=True)
+    elif direzione == "minimo":
+        subprocess.run(['wpctl', 'set-volume', '@DEFAULT_AUDIO_SINK@', '0.1'], capture_output=True)
+
 def gestisci_comando(testo):
     tl = testo.lower()
     if any(w in tl for w in ["che ore", "che giorno", "orario", "data di oggi"]):
@@ -238,12 +248,20 @@ def gestisci_comando(testo):
                               "stop", "basta", "ferma", "fermati", "smetti"]):
         musica_stop()
         return "Musica fermata."
-    if any(w in tl for w in ["volume su", "alza volume", "più forte"]):
+    if any(w in tl for w in ["volume su", "alza volume", "più forte", "aumenta volume", "alza il volume"]):
         musica_volume("su")
-        return "Volume alzato."
-    if any(w in tl for w in ["volume giù", "abbassa volume", "più piano"]):
+        volume_sistema("su")
+        return ("Volume alzato.", True)
+    if any(w in tl for w in ["volume giù", "abbassa volume", "più piano", "diminuisci volume", "abbassa il volume"]):
         musica_volume("giù")
-        return "Volume abbassato."
+        volume_sistema("giù")
+        return ("Volume abbassato.", True)
+    if any(w in tl for w in ["volume massimo", "volume al massimo"]):
+        volume_sistema("massimo")
+        return ("Volume al massimo.", True)
+    if any(w in tl for w in ["volume minimo", "volume al minimo"]):
+        volume_sistema("minimo")
+        return ("Volume al minimo.", True)
     return None
 
 def chiedi_gemini(testo):
@@ -307,10 +325,11 @@ try:
             print(f"🎙️  Parla ora (mi fermo quando smetti)...")
             display.set_stato("WAKE")
 
-            # Pausa musica durante interazione
+            # Abbassa volume musica durante interazione
             musica_era_attiva = musica_in_riproduzione()
+            proc_prima = _mpv_proc
             if musica_era_attiva:
-                musica_pausa()
+                _mpv_command(["set_property", "volume", 20])
 
             stream.stop_stream()
             stream.close()
@@ -325,19 +344,30 @@ try:
 
             if testo and len(testo) > 2:
                 print(f"📝 Hai detto: {testo}")
-                display.set_stato("HAI_DETTO", testo)
-                time.sleep(1.5)
 
-                print(f"🤖 {NOME_ASSISTENTE} sta pensando...")
-                display.set_stato("PENSANDO")
-                risposta = gestisci_comando(testo) or chiedi_gemini(testo)
+                risultato = gestisci_comando(testo)
+                if isinstance(risultato, tuple):
+                    risposta, rapido = risultato
+                elif risultato:
+                    risposta, rapido = risultato, False
+                else:
+                    rapido = False
+                    display.set_stato("HAI_DETTO", testo)
+                    time.sleep(1.5)
+                    print(f"🤖 {NOME_ASSISTENTE} sta pensando...")
+                    display.set_stato("PENSANDO")
+                    risposta = chiedi_gemini(testo)
+
                 print(f"💬 {NOME_ASSISTENTE}: {risposta}\n")
-                display.set_stato("RISPOSTA", risposta)
-                parla(risposta)
+                if rapido:
+                    display.set_stato("RISPOSTA", risposta)
+                else:
+                    display.set_stato("RISPOSTA", risposta)
+                    parla(risposta)
 
-            # Riprendi musica se era in riproduzione e non è stata fermata
-            if musica_era_attiva and musica_in_riproduzione():
-                musica_pausa()
+            # Ripristina volume se è lo stesso processo (non una nuova canzone)
+            if musica_era_attiva and _mpv_proc is proc_prima and musica_in_riproduzione():
+                _mpv_command(["set_property", "volume", 100])
 
             stream = pa.open(
                 rate=NATIVE_RATE,
