@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip uninstall:*)",
+      "Bash(pip install:*)",
+      "Bash(find /home/kekkoz/assistente -maxdepth 2 -type f \\\\\\(-name *.md -o -name *.txt -o -name *.json -o -name *.yaml -o -name *.yml -o -name *.ini -o -name *.conf -o -name requirements*.txt -o -name setup.py -o -name pyproject.toml \\\\\\))",
+      "Bash(file /home/kekkoz/assistente/*.pv /home/kekkoz/assistente/*.ppn /home/kekkoz/assistente/*.wav)",
+      "Bash(python3 -c \"import sys; print\\(f''Python {sys.version}''\\)\")",
+      "Bash(ls -lh /home/kekkoz/assistente/venv/lib/python3.13/site-packages/torch*)",
+      "Bash(python3 -c \"import gpiozero; print\\(gpiozero.__version__\\)\")",
+      "Bash(mkdir -p /home/kekkoz/sentinelpi/sentinelpi/web)",
+      "Bash(mkdir -p /home/kekkoz/sentinelpi/tests)",
+      "Read(//home/kekkoz/**)",
+      "Bash(python3 -m venv venv)",
+      "Bash(source venv/bin/activate)",
+      "Bash(python run.py --simulate)",
+      "Bash(python -m pytest tests/test_config.py -v)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(python -m pytest tests/test_database.py -v)",
+      "Bash(python -m pytest tests/test_actuators.py -v)",
+      "Bash(venv/bin/python -m pytest tests/test_sensors.py -v)",
+      "Bash(venv/bin/python -m pytest tests/test_challenge.py -v)",
+      "Bash(git init:*)",
+      "Bash(python -m pytest tests/test_core.py -v)",
+      "Bash(python -c \"import flask; import flask_socketio; print\\(''OK''\\)\")",
+      "Bash(python -m pytest tests/test_web.py -v)",
+      "Bash(python -m pytest tests/ -v)",
+      "Bash(git push:*)",
+      "Bash(sudo apt:*)",
+      "Bash(cat /home/kekkoz/assistente/docs/superpowers/*)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''assistente.py''\\).read\\(\\)\\); print\\(''Sintassi OK''\\)\")"
+    ]
+  }
+}
